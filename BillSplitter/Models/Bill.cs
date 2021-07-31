@@ -16,5 +16,45 @@ namespace BillSplitter.Models
         public int PaidByRoomMateId { get; set; }
         public RoomMate PaidByRoomMate { get; set; }
         public List<Payment> Payments { get; set; }
+        public int NumberOfSplits { get; set; }
+
+        public decimal PaymentPerSplit
+        {
+            get
+            {
+                if (NumberOfSplits == 0) return 0;
+                return Amount / NumberOfSplits;
+            }
+        }
+
+        public decimal TotalDueRoommate
+        {
+            get
+            {
+                return Amount - PaymentPerSplit;
+            }
+        }
+
+        public PaymentStatus PaymentStatus
+        {
+            get
+            {
+                if (Payments == null) return PaymentStatus.Unknown;
+
+                if (Payments.Where(x => x.Confirmed).Sum(x => x.Amount) >= TotalDueRoommate)
+                {
+                    return PaymentStatus.Completed;
+                }
+
+                return PaymentStatus.Pending;
+            }
+        }
+    }
+
+    public enum PaymentStatus
+    {
+        Unknown,
+        Pending,
+        Completed
     }
 }

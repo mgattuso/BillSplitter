@@ -25,7 +25,10 @@ namespace BillSplitter.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Bill>>> GetBill()
         {
-            return await _context.Bill.Include(x => x.PaidByRoomMate).ToListAsync();
+            return await _context.Bill
+                .Include(x => x.PaidByRoomMate)
+                .Include(x => x.Payments)
+                .ToListAsync();
         }
 
         // GET: api/Bills/5
@@ -97,6 +100,8 @@ namespace BillSplitter.Controllers
         [HttpPost]
         public async Task<ActionResult<Bill>> PostBill(Bill bill)
         {
+            var currentRoommatesCount = await _context.RoomMate.CountAsync();
+            bill.NumberOfSplits = currentRoommatesCount;
             _context.Bill.Add(bill);
             await _context.SaveChangesAsync();
 

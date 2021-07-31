@@ -9,95 +9,139 @@
     <div class="row">
         <div class="col">
             <h4>Bills</h4>
-            
-            <div class="list-group mb-3">
+
+            <div v-show="!ui.showNewBillForm" class="list-group mb-3">
                 <a v-on:click="loadBill(b.id)" v-for="b in bills" href="#" class="list-group-item list-group-item-action flex-column align-items-start">
                     <div class="d-flex w-100 justify-content-between">
-                        <h5 class="mb-1">${{ b.amount }}</h5>
-                        <small>{{ b.paidDate }}</small>
+                        <div>
+                            <h5 class="mb-1 mr-1 float-left">${{ b.amount }}</h5>
+                            <span v-show="b.paymentStatus==1" class="badge badge-warning">Pending</span>
+                            <span v-show="b.paymentStatus==2" class="badge badge-success">Completed</span>
+
+                        </div>
+                        <small>{{ b.paidDate | timeago }}</small>
                     </div>
                     <p class="mb-1">{{ b.description }}</p>
                     <small>{{ b.paidByRoomMate.firstName }} {{ b.paidByRoomMate.lastName }}</small>
                 </a>
             </div>
-            
-            <button v-show="!ui.showNewBillForm" class="btn btn-primary btn-block" v-on:click="ui.showNewBillForm=true">Add a new Bill</button>
-            
-            <form v-on:submit.prevent.stop="saveNewBill" v-show="ui.showNewBillForm">
-                <h5>New Bill Information</h5>
-                <div class="form-group">
-                    <label>Description</label>
-                    <input type="text" v-model="form.newBillForm.description" class="form-control"/>
-                </div>
 
-                <div class="form-group">
-                    <label>Amount</label>
-                    <input type="number" v-model.number="form.newBillForm.amount" step="any" class="form-control"/>
-                </div>
-                
-                <div class="form-group">
-                    <label>Paid Date</label>
-                    <input type="date" v-model="form.newBillForm.paidDate" class="form-control"/>
-                </div>
-                
-                <div class="form-group">
-                    <label>Paid By</label>
-                    <select v-model="form.newBillForm.paidByRoomMateId" class="form-control">
-                        <option>Select...</option>
-                        <option v-for="r in roomMates" :value="r.id">{{ r.firstName }} {{ r.lastName }}</option>
-                    </select>
-                </div>
+            <button v-show="!ui.showNewBillForm && bills.length > 0" class="btn btn-primary btn-block" v-on:click="ui.showNewBillForm=true">Add a new Bill</button>
 
-                <button type="submit" class="btn btn-primary btn-block">Save Bill</button>
+            <form v-on:submit.prevent.stop="saveNewBill" v-show="ui.showNewBillForm || bills.length == 0">
+                <fieldset>
+                    <h5>New Bill Information</h5>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" v-model="form.newBillForm.description" class="form-control" />
+                    </div>
 
+                    <div class="form-group">
+                        <label>Amount</label>
+                        <input type="number" v-model.number="form.newBillForm.amount" step="any" class="form-control" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Paid Date</label>
+                        <input type="date" v-model="form.newBillForm.paidDate" class="form-control" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Paid By</label>
+                        <select v-model="form.newBillForm.paidByRoomMateId" class="form-control">
+                            <option>Select...</option>
+                            <option v-for="r in roomMates" :value="r.id">{{ r.firstName }} {{ r.lastName }}</option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-8">
+                            <button type="submit" class="btn btn-primary btn-block">Save Bill</button>
+                        </div>
+                        <div v-on:click="ui.showNewBillForm=false" class="col-4">
+                            <button type="button" class="btn btn-danger btn-block">Cancel</button>
+                        </div>
+                    </div>
+                </fieldset>
             </form>
         </div>
         <div class="col">
+
             <h4>Payment Information</h4>
 
-            <div v-if="selectedBill" class="list-group mb-3">
-                <a v-for="p in selectedBill.bill.payments" href="#" class="list-group-item list-group-item-action flex-column align-items-start">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h5 class="mb-1">${{ p.amount }}</h5>
-                        <small>{{ p.paidDate }}</small>
-                    </div>
-                    <p class="mb-1">{{ p.details }}</p>
-                    <small>{{ p.roomMate.firstName }} {{ p.roomMate.lastName }}</small>
-                </a>
+            <div v-if="!selectedBill" class="alert alert-info">
+                No bill selected. Selected a bill to view payment information
             </div>
 
-            <form v-if="selectedBill" v-on:submit.prevent.stop="saveNewPayment">
-                <h5>New Bill Information</h5>
+            <div v-if="selectedBill">
+                <ul>
+                    <li>Bill <strong>{{ selectedBill.bill.description }}</strong></li>
+                    <li>Amount <strong>${{ selectedBill.bill.amount }}</strong></li>
+                    <li>Paid By <strong>{{ selectedBill.bill.paidByRoomMate.firstName }} {{ selectedBill.bill.paidByRoomMate.lastName }}</strong></li>
+                    <li>Paid Date <strong>{{ selectedBill.bill.paidDate }}</strong></li>
+                </ul>
 
-                <div class="form-group">
-                    <label>Paid By</label>
-                    <select v-model="form.newPaymentForm.roomMateId" class="form-control">
-                        <option>Select...</option>
-                        <option v-for="r in selectedBill.roomMates" :value="r.id">{{ r.firstName }} {{ r.lastName }}</option>
-                    </select>
+
+
+                <div class="list-group mb-3">
+
+                    <div v-show="selectedBill.bill.payments.length==0" class="alert alert-warning">
+                        No payments. Click <a href="#" v-on:click.prevent.stop="ui.showNewPaymentForm=true">add payment</a> to record a new payment.
+                    </div>
+
+                    <a v-for="p in selectedBill.bill.payments" href="#" class="list-group-item list-group-item-action flex-column align-items-start">
+                        <div class="d-flex w-100 justify-content-between">
+                            <div>
+                                <h5 class="mb-1 float-left mr-1">
+                                    ${{ p.amount }}
+                                </h5>
+                                <span class="badge badge-info">Paid</span>
+                                <span v-on:click="unconfirmPayment(p)" v-if="p.confirmed" class="badge badge-success">Confirmed</span>
+                                <span v-on:click="confirmPayment(p)" v-if="!p.confirmed" class="badge badge-light">Confirm</span>
+                            </div>
+
+                            <small>{{ p.paidDate | timeago }}</small>
+                        </div>
+                        <p class="mb-1">{{ p.details }}</p>
+                        <small>{{ p.roomMate.firstName }} {{ p.roomMate.lastName }}</small>
+                    </a>
                 </div>
 
-                <div class="form-group">
-                    <label>Amount</label>
-                    <input type="number" :placeholder="selectedBill.amountPerPerson" v-model.number="form.newPaymentForm.amount" step="any" class="form-control" />
-                    <small>Expected Amount: ${{selectedBill.amountPerPerson}}</small>
-                </div>
+                <button v-show="!ui.showNewPaymentForm && selectedBill.bill.paymentStatus != 2" v-on:click="ui.showNewPaymentForm = true" class="btn btn-primary btn-block">Add Payment</button>
 
-                <div class="form-group">
-                    <label>Details</label>
-                    <textarea type="text" v-model="form.newPaymentForm.details" class="form-control"></textarea>
-                </div>
+                <form v-if="ui.showNewPaymentForm" v-on:submit.prevent.stop="saveNewPayment">
+                    <h5>Payment Information</h5>
 
-                <div class="form-group">
-                    <label>Paid Date</label>
-                    <input type="date" v-model="form.newPaymentForm.paidDate" class="form-control" />
-                </div>
+                    <div class="form-group">
+                        <label>Paid By</label>
+                        <select v-model="form.newPaymentForm.roomMateId" class="form-control">
+                            <option>Select...</option>
+                            <option v-for="r in selectedBill.roomMates" :value="r.id">{{ r.firstName }} {{ r.lastName }}</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Amount</label>
+                        <input type="number" v-model.number="form.newPaymentForm.amount" step="any" class="form-control" />
+                        <small>Expected Amount: ${{selectedBill.amountPerPerson}}</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Details</label>
+                        <textarea type="text" v-model="form.newPaymentForm.details" class="form-control"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Paid Date</label>
+                        <input type="date" v-model="form.newPaymentForm.paidDate" class="form-control" />
+                    </div>
 
 
 
-                <button type="submit" class="btn btn-primary btn-block">Save Bill</button>
+                    <button type="submit" class="btn btn-primary btn-block">Save Bill</button>
 
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -115,7 +159,8 @@
                 bills: [],
                 selectedBill: null,
                 ui: {
-                    showNewBillForm: false
+                    showNewBillForm: false,
+                    showNewPaymentForm: false
                 },
                 form: {
                     newBillForm: {
@@ -133,7 +178,7 @@
                     }
                 }
             },
-            mounted: function() {
+            mounted: function () {
                 // PERFORM ANY ACTIONS WHEN THE PAGE LOADS HERE - SIMILAR TO JQUERY DOCUMENT.READY
                 var self = this;
                 $.ajax({
@@ -141,22 +186,23 @@
                     url: "/api/roommates",
                     dataType: "JSON",
                     contentType: "application/json"
-                }).done(function(data) {
+                }).done(function (data) {
                     self.roomMates = data;
-                }).fail(function() {
+                }).fail(function () {
                     console.log("Something went wrong");
                 });
 
                 self.getAllBills();
 
-                setInterval(function() {
-                        self.getAllBills();
-                    }, 5000);
+                setInterval(function () {
+                    self.getAllBills();
+                },
+                    5000);
 
             },
             methods: {
                 // ADD ANY METHODS (CLICK, SUBMIT EVENTS, ETC.)
-                saveNewBill: function() {
+                saveNewBill: function () {
                     var self = this;
                     var json = JSON.stringify(self.form.newBillForm);
                     $.ajax({
@@ -165,50 +211,56 @@
                         dataType: "JSON",
                         contentType: "application/json",
                         data: json
-                    }).done(function(data) {
+                    }).done(function (data) {
                         console.log("data submitted successfully");
                         self.getAllBills();
-                        self.form.newBillForm.description = "";
-                        self.form.newBillForm.amount = null;
-                        self.form.newBillForm.paidDate = null;
-                        self.form.newBillForm.paidByRoomMateId = null;
+                        self.form.newPaymentForm.details = "";
+                        self.form.newPaymentForm.amount = null;
+                        self.form.newPaymentForm.paidDate = null;
+                        self.form.newPaymentForm.roomMateId = null;
+                        self.form.newPaymentForm.billId = null;
                         self.ui.showNewBillForm = false;
-                    }).fail(function() {
+                    }).fail(function () {
                         alert("Something went wrong");
                     });
                 },
-                saveNewPayment: function() {
+                saveNewPayment: function () {
                     var self = this;
                     self.form.newPaymentForm.billId = self.selectedBill.bill.id;
                     var json = JSON.stringify(self.form.newPaymentForm);
-                    
+
                     $.ajax({
                         method: "POST",
                         url: "/api/payments",
                         dataType: "JSON",
                         contentType: "application/json",
                         data: json
-                    }).done(function(data) {
+                    }).done(function (data) {
                         console.log("data submitted successfully");
-                        self.getAllBills();
-                    }).fail(function() {
+                        //self.getAllBills();
+                        self.loadBill(self.selectedBill.bill.id);
+                        self.form.newBillForm.description = "";
+                        self.form.newBillForm.amount = null;
+                        self.form.newBillForm.paidDate = null;
+                        self.form.newBillForm.paidByRoomMateId = null;
+                    }).fail(function () {
                         alert("Something went wrong");
                     });
                 },
-                getAllBills: function() {
+                getAllBills: function () {
                     var self = this;
                     $.ajax({
                         method: "GET",
                         url: "/api/bills",
                         dataType: "JSON",
                         contentType: "application/json"
-                    }).done(function(data) {
+                    }).done(function (data) {
                         self.bills = data;
-                    }).fail(function() {
+                    }).fail(function () {
                         console.log("Something went wrong");
                     });
                 },
-                loadBill: function(billId) {
+                loadBill: function (billId) {
                     var self = this;
 
                     $.ajax({
@@ -216,16 +268,47 @@
                         url: "/api/bills/" + billId,
                         dataType: "JSON",
                         contentType: "application/json"
-                    }).done(function(data) {
+                    }).done(function (data) {
                         self.selectedBill = data;
-                    }).fail(function() {
+                        self.ui.showNewPaymentForm = false;
+                    }).fail(function () {
                         console.log("Something went wrong");
+                    });
+                },
+                confirmPayment: function (payment) {
+                    var self = this;
+                    self.toggleConfirmPayment(payment, true);
+                },
+                unconfirmPayment: function (payment) {
+                    var self = this;
+                    self.toggleConfirmPayment(payment, false);
+                },
+                toggleConfirmPayment: function (payment, confirmed) {
+                    console.log("toggle", payment.id, confirmed);
+                    var self = this;
+                    $.ajax({
+                        method: "PUT",
+                        url: "/api/payments/toggle/" + payment.id,
+                        dataType: "JSON",
+                        contentType: "application/json",
+                        data: JSON.stringify({ confirmed: confirmed })
+                    }).done(function (data) {
+                        // RELOAD THE BILL
+                        self.loadBill(payment.billId);
+                    }).fail(function () {
+                        alert("something went wrong");
                     });
                 }
             },
             computed: {
                 // CREATE ANY CALCULATED PROPERTIES HERE. THEY BEHAVE LIKE READ-ONLY DATA
-            
+
+            },
+            filters: {
+                timeago: function (value) {
+                    if (!value) return '';
+                    return timeago.format(value);
+                }
             }
         });
 

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BillSplitter.Data;
 using BillSplitter.Models;
+using BillSplitter.Models.Requests;
 
 namespace BillSplitter.Controllers
 {
@@ -72,6 +73,20 @@ namespace BillSplitter.Controllers
             }
 
             return NoContent();
+        }
+
+        // PUT: api/Payments/toggle
+        [HttpPut("toggle/{id}")]
+        public async Task<ActionResult<Payment>> PutPaymentToggle(int id, [FromBody] TogglePayment togglePayment)
+        {
+            var payment = await _context.Payment.FirstOrDefaultAsync(x => x.Id == id);
+            if (payment == null) return NotFound();
+
+            if (togglePayment == null) return BadRequest();
+
+            payment.Confirmed = togglePayment.Confirmed;
+            await _context.SaveChangesAsync();
+            return payment;
         }
 
         // POST: api/Payments
