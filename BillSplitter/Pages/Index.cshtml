@@ -6,7 +6,13 @@
 
 <div id="app">
 
-    <div class="row">
+    <div v-show="!ui.dataLoaded" class="row">
+        <div class="col">
+            <div class="alert alert-info">Loading</div>
+        </div>
+    </div>
+
+    <div v-show="ui.dataLoaded" class="row">
         <div class="col">
             <h4>Bills</h4>
 
@@ -160,7 +166,8 @@
                 selectedBill: null,
                 ui: {
                     showNewBillForm: false,
-                    showNewPaymentForm: false
+                    showNewPaymentForm: false,
+                    dataLoaded: false
                 },
                 form: {
                     newBillForm: {
@@ -256,6 +263,7 @@
                         contentType: "application/json"
                     }).done(function (data) {
                         self.bills = data;
+                        self.ui.dataLoaded = true;
                     }).fail(function () {
                         console.log("Something went wrong");
                     });
